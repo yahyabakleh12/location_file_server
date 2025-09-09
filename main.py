@@ -44,10 +44,11 @@ FORWARD_LOOP_SLEEP_IDLE = float(os.getenv("FORWARD_LOOP_SLEEP_IDLE", "0.5"))
 REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "60"))  # larger for big base64 payloads
 
 # Optionally propagate selected inbound headers (comma-separated, case-insensitive)
+_raw_headers = os.getenv("HEADERS_TO_COPY")
 HEADERS_TO_COPY = (
-    os.getenv("HEADERS_TO_COPY", "x-request-id,x-trace-id").lower().split(",")
-    if os.getenv("HEADERS_TO_COPY") is not None
-    else []
+    [h.strip().lower() for h in _raw_headers.split(",")]
+    if _raw_headers
+    else ["x-request-id", "x-trace-id"]
 )
 
 # TLS verification (use `UPSTREAM_VERIFY=false` only for testing self-signed)

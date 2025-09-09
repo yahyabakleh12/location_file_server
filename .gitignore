@@ -3,3 +3,5 @@ queue_files/
 queue.db
 queue.db-shm
 queue.db-wal
+__pycache__/
+*.pyc
