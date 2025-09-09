@@ -141,14 +141,24 @@ def ensure_queue_dir():
     log.info("Queue directory: %s", str(QUEUE_DIR))
 
 def atomic_write_bytes(target: Path, data: bytes):
-    """Write bytes atomically: write to temp, optional fsync, then replace to final path."""
+    """Write bytes atomically: write to temp, optional fsync, then replace."""
     tmp = target.with_suffix(target.suffix + f".tmp-{uuid.uuid4().hex}")
-    with open(tmp, "wb") as f:
-        f.write(data)
-        f.flush()
-        if ATOMIC_FSYNC:
-            os.fsync(f.fileno())
-    os.replace(tmp, target)
+    replaced = False
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
+            f.flush()
+            if ATOMIC_FSYNC:
+                os.fsync(f.fileno())
+        os.replace(tmp, target)
+        replaced = True
+    finally:
+        if not replaced and tmp.exists():
+            try:
+                tmp.unlink()
+                log.warning("Cleaned up temp file %s after failed atomic write", tmp)
+            except Exception as e:
+                log.warning("Failed to remove temp file %s: %r", tmp, e)
 
 async def enable_sqlite_durability():
     """SQLite: WAL + configurable synchronous + busy_timeout for durability & friendly locking."""
