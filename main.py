@@ -320,7 +320,14 @@ async def forward_loop():
     async with httpx.AsyncClient(http2=True, timeout=REQUEST_TIMEOUT, verify=HTTPX_VERIFY) as client:
         log.info("Forwarder started → %s (verify=%s)", UPSTREAM_URL, HTTPX_VERIFY)
         while True:
-            processed = await forward_once(client)
+            try:
+                processed = await forward_once(client)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                log.exception("forward_once failed")
+                await asyncio.sleep(1)
+                continue
             if not processed:
                 await asyncio.sleep(FORWARD_LOOP_SLEEP_IDLE)
 
