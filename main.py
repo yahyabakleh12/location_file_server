@@ -290,6 +290,7 @@ async def forward_once(client: httpx.AsyncClient) -> bool:
                 log.warning("Sent id=%s but file delete failed (%s): %r", msg.id, file_path, fe)
             async with Session() as session:
                 async with DB_WRITE_LOCK:
+                    dbmsg = None  # pre-initialize so OperationalError handler can reference it
                     try:
                         dbmsg = await session.get(Message, msg.id)
                         if dbmsg:
@@ -299,7 +300,7 @@ async def forward_once(client: httpx.AsyncClient) -> bool:
                         if "locked" in str(oe).lower():
                             # fallback: mark sent if delete collides; retry next cycle if still there
                             await session.rollback()
-                            if dbmsg:
+                            if dbmsg is not None:
                                 dbmsg.status = "sent"; dbmsg.sent_at = now_utc()
                                 dbmsg.last_error = "DB delete deferred due to lock"
                                 await session.commit()
