@@ -255,13 +255,20 @@ async def forward_once(client: httpx.AsyncClient) -> bool:
 
         # stream payload file rather than reading it all into memory
         try:
-            with open(file_path, "rb") as f:
-                resp = await client.post(
-                    UPSTREAM_URL,
-                    content=f,
-                    headers=headers,
-                    timeout=REQUEST_TIMEOUT,
-                )
+            async def file_stream():
+                with open(file_path, "rb") as f:
+                    while True:
+                        chunk = f.read(65536)
+                        if not chunk:
+                            break
+                        yield chunk
+
+            resp = await client.post(
+                UPSTREAM_URL,
+                content=file_stream(),
+                headers=headers,
+                timeout=REQUEST_TIMEOUT,
+            )
         except FileNotFoundError:
             # file disappeared after existence check → drop row
             async with Session() as session:
