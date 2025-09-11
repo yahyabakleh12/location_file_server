@@ -253,15 +253,30 @@ async def forward_once(client: httpx.AsyncClient) -> bool:
                             raise
             continue
 
-        body = file_path.read_bytes()
-
+        # stream payload file rather than reading it all into memory
         try:
-            resp = await client.post(
-                UPSTREAM_URL,
-                content=body,
-                headers=headers,
-                timeout=REQUEST_TIMEOUT,
-            )
+            with open(file_path, "rb") as f:
+                resp = await client.post(
+                    UPSTREAM_URL,
+                    content=f,
+                    headers=headers,
+                    timeout=REQUEST_TIMEOUT,
+                )
+        except FileNotFoundError:
+            # file disappeared after existence check → drop row
+            async with Session() as session:
+                async with DB_WRITE_LOCK:
+                    try:
+                        dbmsg = await session.get(Message, msg.id)
+                        if dbmsg:
+                            await session.delete(dbmsg); await session.commit()
+                        log.error("File missing for id=%s during send: %s — dropped row", msg.id, file_path)
+                    except OperationalError as e:
+                        if "locked" in str(e).lower():
+                            await asyncio.sleep(0.2)
+                        else:
+                            raise
+            continue
         except (httpx.RequestError, httpx.HTTPError) as e:
             # mark error with backoff
             async with Session() as session:
