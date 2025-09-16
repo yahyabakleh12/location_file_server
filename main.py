@@ -29,7 +29,7 @@ from sqlalchemy.exc import OperationalError
 # -------------------------------------------------
 # Configuration (env vars)
 # -------------------------------------------------
-UPSTREAM_URL = os.getenv("UPSTREAM_URL", "http://10.11.5.100:18007/post")
+UPSTREAM_URL = os.getenv("UPSTREAM_URL", "http://10.11.5.100:18009/post")
 DB_URL = os.getenv("DB_URL", "sqlite+aiosqlite:///./queue.db")
 
 QUEUE_DIR = Path(os.getenv("QUEUE_DIR", "./queue_files")).resolve()
