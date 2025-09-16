@@ -402,7 +402,7 @@ class IngestResponse(BaseModel):
 # -------------------------------------------------
 # Endpoints
 # -------------------------------------------------
-@app.post("/ingest", response_model=IngestResponse)
+@app.post("/ingest1", response_model=IngestResponse)
 async def ingest(req: Request):
     """
     Accept JSON **as-is** (raw body), write it to a file atomically, and enqueue.
